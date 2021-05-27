@@ -1,0 +1,1 @@
+/usr/bin/cc -rdynamic CMakeFiles/UDPHomeWork.dir/soc.c.o -o UDPHomeWork 
