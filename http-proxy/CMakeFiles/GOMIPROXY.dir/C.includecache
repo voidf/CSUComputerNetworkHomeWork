@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy.c
+proxy_parse.h
+/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy_parse.h
+sys/socket.h
+-
+netinet/in.h
+-
+sys/types.h
+-
+sys/wait.h
+-
+stdlib.h
+-
+errno.h
+-
+stdio.h
+-
+string.h
+-
+unistd.h
+-
+
+/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy_parse.h
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+stdarg.h
+-
+errno.h
+-
+ctype.h
+-
+
