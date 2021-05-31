@@ -27,6 +27,12 @@ string.h
 -
 unistd.h
 -
+netdb.h
+-
+semaphore.h
+-
+fcntl.h
+-
 
 /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy_parse.h
 stdio.h

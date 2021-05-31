@@ -1,1 +1,1 @@
-/usr/bin/cc -rdynamic CMakeFiles/GOMIPROXY.dir/proxy.c.o -o GOMIPROXY 
+/usr/bin/cc -rdynamic CMakeFiles/GOMIPROXY.dir/proxy.c.o -o GOMIPROXY  -pthread 
