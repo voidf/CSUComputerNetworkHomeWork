@@ -2,8 +2,20 @@
 
 // #include "proxy_parse.h"
 
+typedef long long LL;
+
+#define sign(_x) (_x < 0)
+#define range_4(__iter__, __from__, __to__, __step__) for (LL __iter__ = __from__; __iter__ != __to__ && sign(__to__ - __from__) == sign(__step__); __iter__ += __step__)
+#define range_3(__iter__, __from__, __to__) range_4(__iter__, __from__, __to__, 1)
+#define range_2(__iter__, __to__) range_4(__iter__, 0, __to__, 1)
+#define range_1(__iter__, __to__) range_4(__iter__, 0, 1, 1)
+#define get_range(_1, _2, _3, _4, _Func, ...) _Func
+#define range(...) get_range(__VA_ARGS__, range_4, range_3, range_2, range_1, ...)(__VA_ARGS__)
+
 #include <asm-generic/errno-base.h>
 // #include <cstddef>
+#include <pthread.h>
+#include <stddef.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -23,13 +35,13 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
-#define BUFFER_SIZE (1 << 14)
+#define BUFFER_SIZE (1 << 10)
 
 // const int BUFFER_SIZE = 1 << 14;
 
 const int maximum_process_count = 1 << 7;
 
-const int bind_port = 11451;
+const int bind_port = 11452;
 
 // package rio begin
 
@@ -215,17 +227,20 @@ int open_proxyfd(char *hostname, int port)
 void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
 {
 	char ato[BUFFER_SIZE];
+	puts("A1");
+	*path = '\0';
 
-	*port = 80;	 // 默认设80
-	path = "\0"; // 默认设空
-	protocol = "\0";
+	*protocol = '\0';
 
-	puts("BP1");
-	puts(raw_uri);
+	*port = 80; // 默认设80
+	puts("A2");
+
 	int match_cnt = sscanf(raw_uri, "%[htps]://%s", protocol, ato);
-	printf("matchcnt:%d\n", match_cnt);
+	puts("A3");
+	// printf("matchcnt:%d\n", match_cnt);
 
 	// 没有http(s)前缀
+	// int match_cnt = 1;
 	if (match_cnt == 0)
 	{
 		sscanf(raw_uri, "%s", ato);
@@ -237,14 +252,13 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 		else if (strcmp(protocol, "https") == 0)
 			*port = 443;
 	}
-	puts("AA@");
 	match_cnt = sscanf(ato, "%[^/:?]:%d%s", host, port, path);
-	puts("FDAS");
 	// 没有端口号
 	if (match_cnt == 1)
 	{
 		sscanf(ato, "%*[^/:?]%s", path);
 	}
+	puts("A4");
 }
 
 void wrap_error(int fd, int code, const char *msg)
@@ -269,41 +283,79 @@ void wrap_error(int fd, int code, const char *msg)
 
 #include <sys/select.h>
 
+struct ft_t
+{
+	int fromfd, tofd;
+};
+
+void *endless_piping(void *arg)
+{
+	struct ft_t *ARG = (struct ft_t *)arg;
+	printf("进入线程: 入:%d 出:%d\n", ARG->fromfd, ARG->tofd);
+	char buffer[BUFFER_SIZE];
+	int readcnt;
+
+	while ((readcnt = read(ARG->fromfd, buffer, BUFFER_SIZE)) > 0)
+	{
+		printf("从%d处的读入数%d\n", ARG->fromfd, readcnt);
+		range(i, readcnt)
+		{
+			printf("%X\t", buffer[i]);
+		}
+		puts("");
+		write(ARG->tofd, buffer, readcnt);
+	}
+}
+
 void tunnel_transfer(int fromfd, int tofd)
 {
 	char buffer[BUFFER_SIZE];
 
 	fd_set rset, eset;
 	struct timeval TV;
-	TV.tv_sec = 60;
+	TV.tv_sec = 1;
 
 	FD_ZERO(&rset);
 	// FD_ZERO(&wset);
 	FD_ZERO(&eset);
+
 	FD_SET(fromfd, &rset);
 	FD_SET(fromfd, &eset);
+
 	FD_SET(tofd, &rset);
 	FD_SET(tofd, &eset);
 
 	int readyfd;
 
-	while ((readyfd = select(2 + 1, &rset, NULL, &eset, &TV)) != 0)
-	{
-		if (readyfd < 0)
-		{
-			perror("\033[31mCONNECT隧道模块：select等待错误\033[0m");
-			break;
-		}
-		else
-		{
-			int otherfd = (readyfd == fromfd ? tofd : fromfd);
-			rio_read_n(readyfd, buffer, BUFFER_SIZE - 1);
-			printf("\033[35m%d => %d\n", readyfd, otherfd);
-			puts(buffer);
-			printf("\033[0m\n");
-			rio_write_n(otherfd, buffer, BUFFER_SIZE - 1);
-		}
-	}
+	puts("进入隧道模式");
+	pthread_t rw[2];
+	struct ft_t f1, f2;
+	f2.tofd = f1.fromfd = fromfd;
+	f2.fromfd = f1.tofd = tofd;
+
+	pthread_create(&rw[0], NULL, &endless_piping, (void *)&f1);
+	pthread_create(&rw[1], NULL, &endless_piping, (void *)&f2);
+
+	pthread_join(rw[0], NULL);
+	pthread_join(rw[1], NULL);
+
+	// while ((readyfd = select(2 + 1, &rset, NULL, &eset, &TV)) != 0)
+	// {
+	// 	if (readyfd < 0)
+	// 	{
+	// 		perror("\033[31mCONNECT隧道模块：select等待错误\033[0m");
+	// 		break;
+	// 	}
+	// 	else
+	// 	{
+	// 		int otherfd = (readyfd == fromfd ? tofd : fromfd);
+	// 		rio_read_n(readyfd, buffer, BUFFER_SIZE - 1);
+	// 		printf("\033[35m%d => %d\n", readyfd, otherfd);
+	// 		puts(buffer);
+	// 		printf("\033[0m\n");
+	// 		rio_write_n(otherfd, buffer, BUFFER_SIZE - 1);
+	// 	}
+	// }
 	perror("\033[31mCONNECT隧道模块：select超时\033[0m");
 }
 
@@ -346,14 +398,15 @@ void handle_inbound(int client_fd, int *serverfd)
 	{
 		// read(client_fd, buf, BUFFER_SIZE);
 		// puts(buf);
-		sprintf(buf, "%s 200 Connection Established\r\n\r\n", version);
+		sprintf(buf, "%s 200 OK\r\n\r\n", version);
 		puts(buf);
 
-		rio_write_n(client_fd, buf, strlen(buf));
+		write(client_fd, buf, strlen(buf));
 		tunnel_transfer(client_fd, *serverfd);
 	}
 	else
 	{
+		// puts("Not Implemented Error");
 		wrap_error(client_fd, 501, "Not Implemented Error");
 	}
 }
@@ -433,10 +486,11 @@ int main(int argc, char *argv[])
 					int pctr;
 					sem_getvalue(available_conn, &pctr);
 					// printf("\033[32m 已经使用%d个进程 \033[0m \n", maximum_process_count - pctr);
-					fprintf(stderr, "\033[32m 已经使用%d个进程 \033[0m \n", maximum_process_count - pctr);
+					fprintf(stderr, "\033[32m已经使用%d个进程\033[0m \n", maximum_process_count - pctr);
 					handle_inbound(newfd, &serverfd);
 					sem_post(available_conn);
-
+					sem_getvalue(available_conn, &pctr);
+					printf("\033[32m释放资源...现有%d\033[0m\n", pctr);
 					close(newfd);
 					close(serverfd);
 				}
