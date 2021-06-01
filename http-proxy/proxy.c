@@ -202,6 +202,7 @@ int open_proxyfd(char *hostname, int port)
 	if (getaddrinfo(hostname, port_str, NULL, &addrlist) != 0)
 	{
 		perror("\033[031m域名转换模块：获取域名信息失败\033[0m");
+		fprintf(stderr, "\033[031m其中域名是%s\n\033[0m", hostname);
 		return -1;
 	}
 
@@ -227,20 +228,21 @@ int open_proxyfd(char *hostname, int port)
 void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
 {
 	char ato[BUFFER_SIZE];
-	puts("A1");
+	// puts("A1");
 	*path = '\0';
 
 	*protocol = '\0';
 
 	*port = 80; // 默认设80
-	puts("A2");
+	// puts("A2");
 
-	int match_cnt = sscanf(raw_uri, "%[htps]://%s", protocol, ato);
-	puts("A3");
+	int match_cnt = sscanf(raw_uri, "%[^:/]://%s", protocol, ato);
+	// puts("A3");
 	// printf("matchcnt:%d\n", match_cnt);
 
 	// 没有http(s)前缀
 	// int match_cnt = 1;
+	// fprintf(stderr, "\033[035mmatch_cnt是%d\n\033[0m", match_cnt);
 	if (match_cnt == 0)
 	{
 		sscanf(raw_uri, "%s", ato);
@@ -251,14 +253,18 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 			*port = 80;
 		else if (strcmp(protocol, "https") == 0)
 			*port = 443;
+		else
+			sscanf(raw_uri, "%s", ato);
 	}
+	// fprintf(stderr, "\033[035mato是%s\n\033[0m", ato);
 	match_cnt = sscanf(ato, "%[^/:?]:%d%s", host, port, path);
+	// fprintf(stderr, "\033[035m域名是%s\n\033[0m", host);
 	// 没有端口号
 	if (match_cnt == 1)
 	{
 		sscanf(ato, "%*[^/:?]%s", path);
 	}
-	puts("A4");
+	// puts("A4");
 }
 
 void wrap_error(int fd, int code, const char *msg)
@@ -297,12 +303,12 @@ void *endless_piping(void *arg)
 
 	while ((readcnt = read(ARG->fromfd, buffer, BUFFER_SIZE)) > 0)
 	{
-		printf("从%d处的读入数%d\n", ARG->fromfd, readcnt);
-		range(i, readcnt)
-		{
-			printf("%X\t", buffer[i]);
-		}
-		puts("");
+		// printf("从%d处的读入数%d\n", ARG->fromfd, readcnt);
+		// range(i, readcnt)
+		// {
+		// 	printf("%X\t", buffer[i]);
+		// }
+		// puts("");
 		write(ARG->tofd, buffer, readcnt);
 	}
 }
