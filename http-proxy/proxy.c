@@ -1,3 +1,5 @@
+// https://github.com/vmsandeeprao/HTTP-proxy-server/blob/master/proxy.c
+
 #include "proxy_parse.h"
 
 #include <asm-generic/errno-base.h>
@@ -169,7 +171,45 @@ ssize_t rio_buffered_read_n(rio *rp, void *buf, size_t n)
 
 // package rio end
 
+/* 透过域名打开一个通向它的socket连接 */
+int open_proxyfd(char *hostname, int port)
+{
+	int fd;
+	struct addrinfo *addrlist, *p;
+	char port_str[BUFFER_SIZE];
 
+	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("\033[031m域名转换模块：创建socket对象失败\033[0m");
+		return -1;
+	}
+
+	sprintf(port_str, "%d", port);
+
+	if (getaddrinfo(hostname, port_str, NULL, &addrlist) != 0)
+	{
+		perror("\033[031m域名转换模块：获取域名信息失败\033[0m");
+		return -1;
+	}
+
+	for (p = addrlist; p; p = p->ai_next)
+	{
+		if (p->ai_family == AF_INET)
+		{
+			if (connect(fd, p->ai_addr, p->ai_addrlen) == 0)
+				break;
+		}
+	}
+	freeaddrinfo(addrlist);
+	if (!p)
+	{
+		close(fd);
+		perror("\033[031m域名转换模块：地址表中没有一个可以连接的地址\033[0m");
+		return -1;
+	}
+	else
+		return fd;
+}
 
 void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
 {
@@ -225,7 +265,9 @@ void handle_inbound(int socket_fd)
 	int port;
 	parse_uri(uri, protocol, host, path, &port);
 
-	struct hostent *H = gethostbyname(host);
+	int to_server_fd = open_proxyfd(host, port);
+
+
 }
 
 int main(int argc, char *argv[])
@@ -239,7 +281,7 @@ int main(int argc, char *argv[])
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd == -1)
 	{
-		perror("创建socket失败");
+		perror("\033[31m创建socket失败\033[0m");
 		exit(1);
 	}
 
