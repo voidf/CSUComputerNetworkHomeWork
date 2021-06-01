@@ -6,9 +6,9 @@
 
 #IncludeRegexTransform: 
 
-/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy.c
-proxy_parse.h
-/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy_parse.h
+/mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy/proxy.c
+asm-generic/errno-base.h
+-
 sys/socket.h
 -
 netinet/in.h
@@ -33,18 +33,6 @@ semaphore.h
 -
 fcntl.h
 -
-
-/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy_parse.h
-stdio.h
--
-stdlib.h
--
-string.h
--
-stdarg.h
--
-errno.h
--
-ctype.h
+sys/select.h
 -
 

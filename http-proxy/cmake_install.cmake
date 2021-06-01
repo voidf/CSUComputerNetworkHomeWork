@@ -1,4 +1,4 @@
-# Install script for directory: /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
+# Install script for directory: /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

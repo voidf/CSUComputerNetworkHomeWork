@@ -22,9 +22,9 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
-// #define BUFFER_SIZE 1<<15
+#define BUFFER_SIZE (1 << 14)
 
-const int BUFFER_SIZE = 1 << 14;
+// const int BUFFER_SIZE = 1 << 14;
 
 const int maximum_process_count = 1 << 2;
 
@@ -291,6 +291,9 @@ void tunnel_transfer(int fromfd, int tofd)
 		}
 		else
 		{
+			int otherfd = (readyfd == fromfd ? tofd : fromfd);
+			rio_read_n(readyfd, buffer, BUFFER_SIZE - 1);
+			rio_write_n(otherfd, buffer, BUFFER_SIZE - 1);
 		}
 	}
 	perror("\033[31mCONNECT隧道模块：select超时\033[0m");
@@ -331,12 +334,14 @@ void handle_inbound(int client_fd, int *serverfd)
 
 int main(int argc, char *argv[])
 {
+	printf("\033[32m垃圾代理：版本0.1.0\033[0m\n\n");
 	int sockfd, newfd;
 	struct sockaddr_in from, to;
 	int sin_size;
+	// puts("P1");
+	sem_t *available_conn = sem_open("./available_semaphore", O_CREAT, 0666, maximum_process_count);
 
-	sem_t *available_conn = sem_open("/available_semaphore", O_CREAT, 0666, maximum_process_count);
-
+	// puts("P2");
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd == -1)
 	{
@@ -344,19 +349,23 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	// puts("P3");
 	from.sin_family = AF_INET;
 	from.sin_port = htons(bind_port);
 	from.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	bzero(&(from.sin_zero), 8);
+	// puts("P4");
 	if (bind(sockfd, (struct sockaddr *)&from, sizeof(struct sockaddr)) < 0)
 	{
 		perror("\033[31m端口绑定失败\033[0m");
 		exit(2);
 	}
-
-	listen(sockfd, 1919810);
-	printf("监听%d中", bind_port);
+	// puts("P5");
+	listen(sockfd, 0);
+	// puts("P6");
+	printf("监听%d中\n", bind_port);
+	// puts("P7");
 
 	int T = 1919810;
 
