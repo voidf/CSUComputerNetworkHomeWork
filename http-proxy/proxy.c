@@ -1,6 +1,6 @@
 // https://github.com/vmsandeeprao/HTTP-proxy-server/blob/master/proxy.c
 
-#include "proxy_parse.h"
+// #include "proxy_parse.h"
 
 #include <asm-generic/errno-base.h>
 // #include <cstddef>
@@ -243,6 +243,30 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 	}
 }
 
+void wrap_error(int fd, int code, const char *msg)
+{
+	char headers[BUFFER_SIZE] = "\0";
+	char body[BUFFER_SIZE] = "\0";
+
+	sprintf(body, "<!DOCTYPE html><title>PROXY ERROR</title>"
+				  "<body>"
+				  "<h>%d %s</h>"
+				  "</body>",
+			code, msg);
+
+	sprintf(headers, "HTTP/1.0 %d %s\r\n"
+					 "Content-type: text/html\r\n"
+					 "Content-length: %d\r\n\r\n",
+			code, msg, strlen(body));
+	rio_write_n(fd, headers, strlen(headers));
+	rio_write_n(fd, body, strlen(body));
+}
+
+void tunnel_transfer(int fromfd, int tofd)
+{
+	char buffer[BUFFER_SIZE];
+}
+
 void handle_inbound(int socket_fd)
 {
 	char buf[BUFFER_SIZE];
@@ -266,8 +290,13 @@ void handle_inbound(int socket_fd)
 	parse_uri(uri, protocol, host, path, &port);
 
 	int to_server_fd = open_proxyfd(host, port);
-
-
+	if (strcasecmp(method, "CONNECT") == 0)
+	{
+	}
+	else
+	{
+		wrap_error(socket_fd, 501, "Not Implemented Error");
+	}
 }
 
 int main(int argc, char *argv[])
