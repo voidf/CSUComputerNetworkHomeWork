@@ -262,12 +262,41 @@ void wrap_error(int fd, int code, const char *msg)
 	rio_write_n(fd, body, strlen(body));
 }
 
+#include <sys/select.h>
+
 void tunnel_transfer(int fromfd, int tofd)
 {
 	char buffer[BUFFER_SIZE];
+
+	fd_set rset, eset;
+	struct timeval TV;
+	TV.tv_sec = 60;
+
+	FD_ZERO(&rset);
+	// FD_ZERO(&wset);
+	FD_ZERO(&eset);
+	FD_SET(fromfd, &rset);
+	FD_SET(fromfd, &eset);
+	FD_SET(tofd, &rset);
+	FD_SET(tofd, &eset);
+
+	int readyfd;
+
+	while ((readyfd = select(2 + 1, &rset, NULL, &eset, &TV)) != 0)
+	{
+		if (readyfd < 0)
+		{
+			perror("\033[31mCONNECT隧道模块：select等待错误\033[0m");
+			break;
+		}
+		else
+		{
+		}
+	}
+	perror("\033[31mCONNECT隧道模块：select超时\033[0m");
 }
 
-void handle_inbound(int socket_fd)
+void handle_inbound(int client_fd, int *serverfd)
 {
 	char buf[BUFFER_SIZE];
 	char method[BUFFER_SIZE];
@@ -278,7 +307,7 @@ void handle_inbound(int socket_fd)
 	ssize_t len = 0;
 	int resplen = 0;
 
-	rio_init(&R, socket_fd);
+	rio_init(&R, client_fd);
 	rio_buffered_readline(&R, buf, BUFFER_SIZE);
 
 	sscanf(buf, "%s %s %s", method, uri, version);
@@ -289,13 +318,14 @@ void handle_inbound(int socket_fd)
 	int port;
 	parse_uri(uri, protocol, host, path, &port);
 
-	int to_server_fd = open_proxyfd(host, port);
+	*serverfd = open_proxyfd(host, port);
 	if (strcasecmp(method, "CONNECT") == 0)
 	{
+		tunnel_transfer(client_fd, *serverfd);
 	}
 	else
 	{
-		wrap_error(socket_fd, 501, "Not Implemented Error");
+		wrap_error(client_fd, 501, "Not Implemented Error");
 	}
 }
 
@@ -335,6 +365,7 @@ int main(int argc, char *argv[])
 		sin_size = sizeof(struct sockaddr_in);
 		socklen_t siz;
 		newfd = accept(sockfd, (struct sockaddr *)&to, &siz);
+		int serverfd;
 
 		if (newfd == -1)
 		{
@@ -348,15 +379,19 @@ int main(int argc, char *argv[])
 				if (sem_trywait(available_conn) != 0)
 				{
 					perror("\033[31m并发数已达上限\033[0m");
-					break;
+					wrap_error(newfd, 114514, "并发数已达上限");
+					close(newfd);
 				}
 				else
 				{
 					int pctr;
 					sem_getvalue(available_conn, &pctr);
 					fprintf(stderr, "\033[32m 已经使用%d个进程 \033[0m \n", maximum_process_count - pctr);
-					handle_inbound(newfd);
+					handle_inbound(newfd, &serverfd);
 					sem_post(available_conn);
+
+					close(newfd);
+					close(serverfd);
 				}
 				break;
 			}
