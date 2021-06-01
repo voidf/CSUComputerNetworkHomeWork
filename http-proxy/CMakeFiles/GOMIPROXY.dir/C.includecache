@@ -6,8 +6,10 @@
 
 #IncludeRegexTransform: 
 
-/mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy/proxy.c
+/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/proxy.c
 asm-generic/errno-base.h
+-
+signal.h
 -
 sys/socket.h
 -

@@ -4,6 +4,7 @@
 
 #include <asm-generic/errno-base.h>
 // #include <cstddef>
+#include <signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -26,7 +27,7 @@
 
 // const int BUFFER_SIZE = 1 << 14;
 
-const int maximum_process_count = 1 << 2;
+const int maximum_process_count = 1 << 7;
 
 const int bind_port = 11451;
 
@@ -219,7 +220,10 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 	path = "\0"; // 默认设空
 	protocol = "\0";
 
+	puts("BP1");
+	puts(raw_uri);
 	int match_cnt = sscanf(raw_uri, "%[htps]://%s", protocol, ato);
+	printf("matchcnt:%d\n", match_cnt);
 
 	// 没有http(s)前缀
 	if (match_cnt == 0)
@@ -233,9 +237,9 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 		else if (strcmp(protocol, "https") == 0)
 			*port = 443;
 	}
-
+	puts("AA@");
 	match_cnt = sscanf(ato, "%[^/:?]:%d%s", host, port, path);
-
+	puts("FDAS");
 	// 没有端口号
 	if (match_cnt == 1)
 	{
@@ -245,6 +249,7 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 
 void wrap_error(int fd, int code, const char *msg)
 {
+	printf("包装error：%d %s\n", code, msg);
 	char headers[BUFFER_SIZE] = "\0";
 	char body[BUFFER_SIZE] = "\0";
 
@@ -293,6 +298,9 @@ void tunnel_transfer(int fromfd, int tofd)
 		{
 			int otherfd = (readyfd == fromfd ? tofd : fromfd);
 			rio_read_n(readyfd, buffer, BUFFER_SIZE - 1);
+			printf("\033[35m%d => %d\n", readyfd, otherfd);
+			puts(buffer);
+			printf("\033[0m\n");
 			rio_write_n(otherfd, buffer, BUFFER_SIZE - 1);
 		}
 	}
@@ -313,7 +321,13 @@ void handle_inbound(int client_fd, int *serverfd)
 	rio_init(&R, client_fd);
 	rio_buffered_readline(&R, buf, BUFFER_SIZE);
 
+	puts(buf);
+
 	sscanf(buf, "%s %s %s", method, uri, version);
+
+	printf("method:%s\n", method);
+	printf("uri:%s\n", uri);
+	printf("version:%s\n", version);
 
 	char host[BUFFER_SIZE];
 	char protocol[BUFFER_SIZE];
@@ -321,9 +335,21 @@ void handle_inbound(int client_fd, int *serverfd)
 	int port;
 	parse_uri(uri, protocol, host, path, &port);
 
+	printf("HOST:%s\n", host);
+	printf("PATH:%s\n", path);
+	printf("PROTOCOL:%s\n", protocol);
+	printf("PORT:%d\n", port);
+
 	*serverfd = open_proxyfd(host, port);
+	printf("serverfd:%d\n", *serverfd);
 	if (strcasecmp(method, "CONNECT") == 0)
 	{
+		// read(client_fd, buf, BUFFER_SIZE);
+		// puts(buf);
+		sprintf(buf, "%s 200 Connection Established\r\n\r\n", version);
+		puts(buf);
+
+		rio_write_n(client_fd, buf, strlen(buf));
 		tunnel_transfer(client_fd, *serverfd);
 	}
 	else
@@ -339,7 +365,13 @@ int main(int argc, char *argv[])
 	struct sockaddr_in from, to;
 	int sin_size;
 	// puts("P1");
-	sem_t *available_conn = sem_open("./available_semaphore", O_CREAT, 0666, maximum_process_count);
+	sem_t *available_conn = sem_open("/available_semaphore", O_CREAT, 0666, maximum_process_count);
+	sem_init(available_conn, 1, maximum_process_count);
+
+	int tmp;
+	sem_getvalue(available_conn, &tmp);
+
+	printf("允许同时处理的进程数：%d\n", tmp);
 
 	// puts("P2");
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -374,6 +406,7 @@ int main(int argc, char *argv[])
 		sin_size = sizeof(struct sockaddr_in);
 		socklen_t siz;
 		newfd = accept(sockfd, (struct sockaddr *)&to, &siz);
+		printf("新连接传入：%d\n", newfd);
 		int serverfd;
 
 		if (newfd == -1)
@@ -385,16 +418,21 @@ int main(int argc, char *argv[])
 			pid_t p = fork();
 			if (p == 0)
 			{
+				// printf("进程号：%d\n", p);
 				if (sem_trywait(available_conn) != 0)
 				{
+					// puts("A1");
 					perror("\033[31m并发数已达上限\033[0m");
+					printf("\033[31m并发数已达上限\033[0m\n");
 					wrap_error(newfd, 114514, "并发数已达上限");
 					close(newfd);
 				}
 				else
 				{
+					// puts("A2");
 					int pctr;
 					sem_getvalue(available_conn, &pctr);
+					// printf("\033[32m 已经使用%d个进程 \033[0m \n", maximum_process_count - pctr);
 					fprintf(stderr, "\033[32m 已经使用%d个进程 \033[0m \n", maximum_process_count - pctr);
 					handle_inbound(newfd, &serverfd);
 					sem_post(available_conn);

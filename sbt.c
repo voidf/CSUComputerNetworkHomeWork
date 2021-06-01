@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-const char *cc = "live.bilibili.com";
+char cc[] = "http://www.afcec.com/favicon.ico";
 
 char proto[114514] = "gfdnjaikfhaewlhuclk";
 char host[114514] = "fgnuwaibcnluwheloiahelw";
 char path[114514] = "fgmnijchanwklfhweiloalowhl";
 int port = 23412;
 
-const int BUFFER_SIZE = 1 << 14;
+#define BUFFER_SIZE  (1 << 14)
+// const int BUFFER_SIZE = 1 << 14;
 
 void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
 {
