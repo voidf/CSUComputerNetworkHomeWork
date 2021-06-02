@@ -161,7 +161,7 @@ ssize_t rio_read_n(int fd, void *buf, size_t n)
 	{
 		if ((nread = read(fd, bp, nleft)) < 0)
 		{
-			printf("READ %d\n", nread);
+			// printf("READ %d\n", nread);
 			if (errno == EINTR)
 				nread = 0;
 			else
@@ -484,6 +484,82 @@ int SetNonBlock(int iSock)
 	return ret;
 }
 
+int construct_package(vector_t *V, rio *R)
+{
+	char buf[BUFFER_SIZE];
+	int reuse = 0;
+	long long content_length = -1;
+
+	while (1)
+	{
+		int rctr = rio_buffered_readline(R, buf, BUFFER_SIZE);
+		printf("读入%d个字节:\n%s", rctr, buf);
+		if (strcmp(buf, "\r\n") == 0)
+			break;
+		// puts(buf);
+		char key[BUFFER_SIZE], value[BUFFER_SIZE];
+
+		char *strstrres = strstr(buf, ": ");
+
+		if (strstrres == NULL)
+		{
+			vector_concat(V, buf);
+			continue;
+		}
+
+		int sep = strstrres - buf;
+		strncpy(key, buf, sep);
+		key[sep] = '\0';
+		strcpy(value, buf + sep + 2);
+
+		// printf("KEYLEN %d\n", strlen(key));
+		// printf("KEY:%s\n", key);
+
+		if (strcasecmp(key, "Proxy-Connection") == 0)
+		{
+			if (strcasecmp(value, "keep-alive\r\n") == 0)
+				reuse = 1;
+			// sprintf(buf, "Connection: close\r\n");
+			// vector_concat(&VECTOR, buf);
+			// wctr = write(*serverfd, buf, strlen(buf));
+		}
+		else if (strcasecmp(key, "Connection") == 0)
+		{
+			if (strcasecmp(value, "keep-alive\r\n") == 0)
+				reuse = 1;
+			// sprintf(buf, "Connection: close\r\n");
+			// wctr = write(*serverfd, buf, rctr);
+		}
+		else if (strcasecmp(key, "content-length") == 0)
+		{
+			content_length = atoll(value);
+			printf("Got content_length=%lld\n", content_length);
+		}
+		vector_concat(V, buf);
+		// printf("写入%d个字节:\n%s", wctr, buf);
+	}
+	vector_concat(V, "\r\n");
+	int rp;
+	// puts("BP2");
+	while (content_length > 0)
+	{
+		printf("Content-Length ===> %lld\n", content_length);
+		rp = rio_buffered_readline(R, buf, min(BUFFER_SIZE - 1, content_length));
+		content_length -= rp;
+		printf("I read %d \n", rp);
+		vector_concat_n(V, buf, rp);
+	}
+
+	// if (R->cnt)
+	// {
+	// 	printf("I read %d \n", rp);
+	// 	rp = rio_read(R, buf, R->cnt);
+	// 	vector_concat_n(V, buf, rp);
+	// }
+	printf("剩余计数：%d\n", R->cnt);
+	return reuse;
+}
+
 void handle_inbound(int client_fd, int *serverfd)
 {
 	char buf[BUFFER_SIZE];
@@ -502,9 +578,9 @@ void handle_inbound(int client_fd, int *serverfd)
 
 	sscanf(buf, "%s %s %s", method, uri, version);
 
-	printf("method:%s\n", method);
-	printf("uri:%s\n", uri);
-	printf("version:%s\n", version);
+	// printf("method:%s\n", method);
+	// printf("uri:%s\n", uri);
+	// printf("version:%s\n", version);
 
 	char host[BUFFER_SIZE];
 	char protocol[BUFFER_SIZE];
@@ -512,10 +588,10 @@ void handle_inbound(int client_fd, int *serverfd)
 	int port;
 	parse_uri(uri, protocol, host, path, &port);
 
-	printf("HOST:%s\n", host);
-	printf("PATH:%s\n", path);
-	printf("PROTOCOL:%s\n", protocol);
-	printf("PORT:%d\n", port);
+	// printf("HOST:%s\n", host);
+	// printf("PATH:%s\n", path);
+	// printf("PROTOCOL:%s\n", protocol);
+	// printf("PORT:%d\n", port);
 
 	*serverfd = open_proxyfd(host, port);
 	printf("serverfd:%d\n", *serverfd);
@@ -529,117 +605,53 @@ void handle_inbound(int client_fd, int *serverfd)
 		send(client_fd, buf, strlen(buf), 0);
 		tunnel_transfer(client_fd, *serverfd, 0);
 	}
-	else if (
-		/*
-		strcasecmp(method, "GET") == 0*/
-		1)
+	else if (1)
 	{
 		vector_t VECTOR;
 		vector_init(&VECTOR, BUFFER_SIZE);
-		SetNonBlock(client_fd);
-
-		printf("\033[036m发现%s请求\n", method);
-		// sprintf(buf, "GET /test HTTP/1.1\r\n");
-		// // "Host: rinko.work:7012\r\n\r\n");
-		// send(*serverfd, buf, strlen(buf), 0);
-		// sprintf(buf, "Host: rinko.work:7012\r\n\r\n");
-		// send(*serverfd, buf, strlen(buf), 0);
-
-		sprintf(buf, "%s %s %s\r\n", method, path, version);
-		vector_concat(&VECTOR, buf);
-		// puts("BP1");
-		int reuse = 0;
-
-		while (1)
-		{
-			int rctr = rio_buffered_readline(&R, buf, BUFFER_SIZE);
-			// printf("读入%d个字节:\n%s", rctr, buf);
-			if (strcmp(buf, "\r\n") == 0)
-				break;
-			// puts(buf);
-			char key[BUFFER_SIZE], value[BUFFER_SIZE];
-			int sep = strstr(buf, ": ") - buf;
-			strncpy(key, buf, sep);
-			key[sep] = '\0';
-			strcpy(value, buf + sep + 2);
-
-			// printf("KEYLEN %d\n", strlen(key));
-			// printf("KEY:%s\n", key);
-
-			if (strcasecmp(key, "Proxy-Connection") == 0)
-			{
-				if (strcasecmp(value, "keep-alive\r\n") == 0)
-					reuse = 1;
-				sprintf(buf, "Connection: close\r\n");
-				// vector_concat(&VECTOR, buf);
-				// wctr = write(*serverfd, buf, strlen(buf));
-			}
-			else if (strcasecmp(key, "Connection") == 0)
-			{
-				if (strcasecmp(value, "keep-alive\r\n") == 0)
-					reuse = 1;
-				sprintf(buf, "Connection: close\r\n");
-				// wctr = write(*serverfd, buf, rctr);
-			}
-			vector_concat(&VECTOR, buf);
-			// printf("写入%d个字节:\n%s", wctr, buf);
-		}
-		vector_concat(&VECTOR, "\r\n");
-		int rp;
-		// puts("BP2");
-		if (R.cnt > 0)
-			while ((rp = rio_buffered_readline(&R, buf, BUFFER_SIZE)) > 0)
-			{
-				printf("I read %d \n", rp);
-				vector_concat_n(&VECTOR, buf, rp);
-			}
-		// puts("BP3");
-		while ((rp = read(client_fd, buf, BUFFER_SIZE)) > 0)
-		{
-			printf("I <read> %d \n", rp);
-			vector_concat_n(&VECTOR, buf, rp);
-		}
-
-		printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
-		write(*serverfd, VECTOR.begin, vector_size(&VECTOR));
-		*VECTOR.end = 0;
-		puts(VECTOR.begin);
-
-		vector_clear(&VECTOR);
-		// puts("BP4");
-		fd_set rset;
 		struct timeval TV;
 		TV.tv_sec = 4;
-		setsockopt(*serverfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
+		setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
 
-		FD_ZERO(&rset);
+		printf("\033[036m发现%s请求\n", method);
 
-		FD_SET(*serverfd, &rset);
+		rio SVR;
 
-		int readyfd;
+		rio_init(&SVR, *serverfd);
 
-		// rp = read(*serverfd, buf, BUFFER_SIZE);
-		// printf("BP5 : %d\n", rp);
-		// write(client_fd, buf, rp);
+		sprintf(buf, "%s %s %s\r\n", method, path, version);
 
-		while ((rp = read(*serverfd, buf, BUFFER_SIZE)) > 0)
+		vector_concat(&VECTOR, buf);
+
+		int keep_alive = 1;
+		while (keep_alive)
 		{
-			// rp = read(*serverfd, buf, BUFFER_SIZE);
-			printf("BP5 : %d\n", rp);
-			// puts("BP5");
-			// SetNonBlock(*serverfd);
-			// write(client_fd, buf, rp);
-			vector_concat_n(&VECTOR, buf, rp);
+			// keep_alive = 0;
+			// puts("BP1");
+
+			keep_alive = construct_package(&VECTOR, &R);
+
+			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
+			write(*serverfd, VECTOR.begin, vector_size(&VECTOR));
+			*VECTOR.end = 0;
+			puts(VECTOR.begin);
+
+			vector_clear(&VECTOR);
+			// rio_init(&R, client_fd);
+
+			construct_package(&VECTOR, &SVR);
+
+			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
+			write(client_fd, VECTOR.begin, vector_size(&VECTOR));
+			*VECTOR.end = 0;
+			puts(VECTOR.begin);
+
+			vector_clear(&VECTOR);
+			// rio_init(&SVR, *serverfd);
 		}
-		printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
-		write(client_fd, VECTOR.begin, vector_size(&VECTOR));
-		*VECTOR.end = 0;
-		puts(VECTOR.begin);
+		puts("\033[0m");
 
 		vector_destroy(&VECTOR);
-
-		if (reuse)
-			tunnel_transfer(client_fd, *serverfd, 1);
 	}
 	else
 	{
