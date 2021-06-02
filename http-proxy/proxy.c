@@ -1,5 +1,3 @@
-// https://github.com/vmsandeeprao/HTTP-proxy-server/blob/master/proxy.c
-
 // #include "proxy_parse.h"
 
 typedef long long LL;
@@ -210,6 +208,10 @@ int open_proxyfd(char *hostname, int port)
 	{
 		if (p->ai_family == AF_INET)
 		{
+			// range(i, 14)
+			// {
+			// 	printf("尝试连接于%d\n", (p->ai_addr->sa_data[i]));
+			// }
 			if (connect(fd, p->ai_addr, p->ai_addrlen) == 0)
 				break;
 		}
@@ -317,21 +319,21 @@ void tunnel_transfer(int fromfd, int tofd)
 {
 	char buffer[BUFFER_SIZE];
 
-	fd_set rset, eset;
-	struct timeval TV;
-	TV.tv_sec = 1;
+	// fd_set rset, eset;
+	// struct timeval TV;
+	// TV.tv_sec = 1;
 
-	FD_ZERO(&rset);
-	// FD_ZERO(&wset);
-	FD_ZERO(&eset);
+	// FD_ZERO(&rset);
+	// // FD_ZERO(&wset);
+	// FD_ZERO(&eset);
 
-	FD_SET(fromfd, &rset);
-	FD_SET(fromfd, &eset);
+	// FD_SET(fromfd, &rset);
+	// FD_SET(fromfd, &eset);
 
-	FD_SET(tofd, &rset);
-	FD_SET(tofd, &eset);
+	// FD_SET(tofd, &rset);
+	// FD_SET(tofd, &eset);
 
-	int readyfd;
+	// int readyfd;
 
 	puts("进入隧道模式");
 	pthread_t rw[2];
@@ -362,7 +364,7 @@ void tunnel_transfer(int fromfd, int tofd)
 	// 		rio_write_n(otherfd, buffer, BUFFER_SIZE - 1);
 	// 	}
 	// }
-	perror("\033[31mCONNECT隧道模块：select超时\033[0m");
+	perror("\033[31mCONNECT隧道模块：超时关闭\033[0m");
 }
 
 void handle_inbound(int client_fd, int *serverfd)
@@ -409,6 +411,42 @@ void handle_inbound(int client_fd, int *serverfd)
 
 		write(client_fd, buf, strlen(buf));
 		tunnel_transfer(client_fd, *serverfd);
+	}
+	else if (strcasecmp(method, "GET") == 0)
+	{
+		printf("\033[036m发现GET请求\n");
+		sprintf(buf, "%s %s %s\r\n", method, path, version);
+		rio_write_n(*serverfd, buf, strlen(buf));
+		while (strcmp(buf, "\r\n") != 0)
+		{
+			rio_buffered_readline(&R, buf, BUFFER_SIZE);
+			puts(buf);
+			char key[BUFFER_SIZE], value[BUFFER_SIZE];
+			int sep = strstr(buf, ": ") - buf;
+			strncpy(key, buf, sep);
+			strcpy(value, buf + sep + 2);
+
+			// 可以用AC自动机优化（不是
+			if (strcasecmp(key, "Proxy-Connection") == 0)
+			{
+				sprintf(buf, "Connection: %s\r\n", value);
+				rio_write_n(*serverfd, buf, strlen(buf));
+			}
+			else
+			{
+				rio_write_n(*serverfd, buf, strlen(buf));
+			}
+		}
+		rio_write_n(*serverfd, "\r\n", 2);
+		// rio_init(&R, serverfd);
+		int pico;
+
+		while ((pico = rio_read_n(*serverfd, buf, BUFFER_SIZE)) > 0)
+		{
+			printf("读入%d个字：%s\n", pico, buf);
+			rio_write_n(client_fd, buf, pico);
+		}
+		puts("\033[0m");
 	}
 	else
 	{

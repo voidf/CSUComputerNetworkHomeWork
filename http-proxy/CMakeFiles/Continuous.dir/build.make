@@ -62,10 +62,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
+CMAKE_SOURCE_DIR = /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
+CMAKE_BINARY_DIR = /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy
 
 # Utility rule file for Continuous.
 
@@ -90,6 +90,6 @@ CMakeFiles/Continuous.dir/clean:
 .PHONY : CMakeFiles/Continuous.dir/clean
 
 CMakeFiles/Continuous.dir/depend:
-	cd /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles/Continuous.dir/DependInfo.cmake --color=$(COLOR)
+	cd /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy /mnt/c/Users/ATRI/Desktop/UDPHomeWork/http-proxy/CMakeFiles/Continuous.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/Continuous.dir/depend
 
