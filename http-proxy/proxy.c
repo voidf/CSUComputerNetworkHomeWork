@@ -335,6 +335,7 @@ int construct_package(vector_t *V, int fd)
 	char buf[BUFFER_SIZE];
 	int reuse = 0;
 	long long content_length = -1;
+	int chunked_flag = 0;
 
 	while (1)
 	{
@@ -382,6 +383,11 @@ int construct_package(vector_t *V, int fd)
 			content_length = atoll(value);
 			printf("Got content_length=%lld\n", content_length);
 		}
+		else if (strcasecmp(key, "Transfer-Encoding") == 0)
+		{
+			if (strstr(value, "chunked") != NULL)
+				chunked_flag = 1;
+		}
 		vector_concat(V, buf);
 		// printf("写入%d个字节:\n%s", wctr, buf);
 	}
@@ -403,13 +409,39 @@ int construct_package(vector_t *V, int fd)
 		vector_concat_n(V, buf, rp);
 	}
 
-	// if (R->cnt)
-	// {
-	// 	printf("I read %d \n", rp);
-	// 	rp = rio_read(R, buf, R->cnt);
-	// 	vector_concat_n(V, buf, rp);
-	// }
-	// printf("剩余计数：%d\n", R->cnt);
+	if (chunked_flag)
+	{
+		long long len;
+		while (1)
+		{
+			int rdc = readline(fd, buf);
+			vector_concat_n(V, buf, rdc);
+			buf[rdc] = '\0';
+			sscanf(buf, "%llx", &len);
+			// len = atoll(buf);
+			printf("\t<<rdc>>:%d <<len>>:%lld\n", rdc, len);
+			puts(buf);
+
+			if (len == 0)
+			{
+				rdc = readline(fd, buf);
+				vector_concat_n(V, buf, rdc);
+				break;
+			}
+			while (len > BUFFER_SIZE)
+			{
+				int rdc = read(fd, buf, BUFFER_SIZE);
+				len -= rdc;
+				vector_concat_n(V, buf, rdc);
+			}
+			rdc = read(fd, buf, len);
+			// printf("\t<<RDC>>:%d\n", rdc);
+			len -= rdc;
+			vector_concat_n(V, buf, rdc);
+			rdc = read(fd, buf, 2);
+			vector_concat_n(V, buf, rdc);
+		}
+	}
 	return reuse;
 }
 
@@ -451,7 +483,7 @@ void handle_inbound(int client_fd, int *serverfd)
 	printf("serverfd:%d\n", *serverfd);
 	if (*serverfd < 0)
 		return;
-		
+
 	if (strcasecmp(method, "CONNECT") == 0)
 	{
 		// read(client_fd, buf, BUFFER_SIZE);
@@ -492,8 +524,8 @@ void handle_inbound(int client_fd, int *serverfd)
 
 			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
 			write(*serverfd, VECTOR.begin, vector_size(&VECTOR));
-			*VECTOR.end = 0;
-			puts(VECTOR.begin);
+			// *VECTOR.end = 0;
+			// puts(VECTOR.begin);
 
 			vector_clear(&VECTOR);
 			// rio_init(&R, client_fd);
@@ -502,8 +534,8 @@ void handle_inbound(int client_fd, int *serverfd)
 
 			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
 			write(client_fd, VECTOR.begin, vector_size(&VECTOR));
-			*VECTOR.end = 0;
-			puts(VECTOR.begin);
+			// *VECTOR.end = 0;
+			// puts(VECTOR.begin);
 
 			vector_clear(&VECTOR);
 		}
