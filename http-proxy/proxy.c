@@ -44,7 +44,7 @@ const int maximum_process_count = 1 << 7;
 
 u_short bind_port = 11452;
 
-//package vector begin
+//package vector begin　给用C++就没这些破事了害
 
 typedef char vector_element;
 typedef struct
@@ -133,150 +133,26 @@ void vector_connect(vector_t *original, vector_t *another)
 
 //package vector end
 
-// package rio begin
-
-typedef struct
+/* SB Rio，狗都不用 */
+ssize_t readline(int fd, char *buf)
 {
-	int fd;
-	int cnt;
-	char *bufptr;
-	char buf[BUFFER_SIZE];
-} rio;
-
-/* 初始化鲁棒io结构体 */
-void rio_init(rio *R, int fd)
-{
-	R->fd = fd;
-	R->cnt = 0;
-	R->bufptr = R->buf;
-}
-
-/* 从fd中连续读入n个字节 */
-ssize_t rio_read_n(int fd, void *buf, size_t n)
-{
-	ssize_t nread;
-	size_t nleft = n;
-	char *bp = (char *)buf;
-	while (nleft > 0)
+	char *ptr = buf;
+	int read_ctr = 0;
+	do
 	{
-		if ((nread = read(fd, bp, nleft)) < 0)
-		{
-			// printf("READ %d\n", nread);
-			if (errno == EINTR)
-				nread = 0;
-			else
-				return -1;
-		}
-		else if (nread == 0)
+		int RCTR = read(fd, ptr, 1);
+		if (RCTR == 0) // EOF
 			break;
-		nleft -= nread;
-		bp += nread;
-	}
-	return n - nleft;
-}
-
-/* 向fd中连续写入n个字节 */
-ssize_t rio_write_n(int fd, void *buf, size_t n)
-{
-	ssize_t nwrite;
-	size_t nleft = n;
-	char *bp = (char *)buf;
-	while (nleft > 0)
-	{
-		if ((nwrite = write(fd, bp, nleft)) <= 0)
+		else if (RCTR == -1) // ERROR
 		{
-			if (errno == EINTR)
-				nwrite = 0;
-			else
-				return -1;
-		}
-		nleft -= nwrite;
-		bp += nwrite;
-	}
-	return n;
-}
-
-/* 利用rio结构缓冲，减少调用read次数的read实现 */
-ssize_t rio_read(rio *rp, void *buf, size_t n)
-{
-	ssize_t cnt;
-	while (rp->cnt <= 0)
-	{
-		rp->cnt = read(rp->fd, rp->buf, sizeof(rp->buf));
-		if (rp->cnt < 0)
-		{
-			if (errno != EINTR)
-				return -1;
-		}
-		else if (rp->cnt == 0)
-			return 0;
-		else
-			rp->bufptr = rp->buf;
-	}
-	cnt = n;
-	if (rp->cnt < n)
-		cnt = rp->cnt;
-	memcpy(buf, rp->bufptr, cnt);
-	rp->cnt -= cnt;
-	rp->bufptr += cnt;
-	return cnt;
-}
-
-/* 从fd中读入行 */
-ssize_t rio_buffered_readline(rio *rp, void *buf, size_t n)
-{
-	size_t i, ret;
-	char c;
-	char *bp = (char *)buf;
-	// 为'\0'预留位置
-	for (i = 1; i < n; ++i)
-	{
-		ret = rio_read(rp, &c, 1);
-		if ((ret) == 1)
-		{
-			*bp++ = c;
-			if (c == '\n')
-				break;
-		}
-		else if (ret == 0)
-		{
-			if (i == 1)
-				return 0;
-			else
-				break;
-		}
-		else
-			return -1;
-	}
-	*bp = '\0';
-	return i;
-}
-
-ssize_t rio_buffered_read_n(rio *rp, void *buf, size_t n)
-{
-	ssize_t nread;
-	size_t nleft = n;
-	char *bp = (char *)buf;
-	while (nleft > 0)
-	{
-		nread = rio_read(rp, bp, nleft);
-
-		if ((nread) < 0)
-		{
-			if (errno == EINTR)
-				nread = 0;
-			else
-				return -1;
-		}
-		else if (nread == 0)
+			perror("\033[031m读异常:\033[0m");
 			break;
-		nleft -= nread;
-		bp += nread;
-	}
-	return n - nleft;
+		}
+		read_ctr += RCTR;
+	} while (*ptr++ != '\n');
+	*ptr = '\0';
+	return read_ctr;
 }
-
-// package rio end
 
 /* 透过域名打开一个通向它的socket连接 */
 int open_proxyfd(char *hostname, int port)
@@ -384,8 +260,8 @@ void wrap_error(int fd, int code, const char *msg)
 					 "Content-type: text/html\r\n"
 					 "Content-length: %d\r\n\r\n",
 			code, msg, strlen(body));
-	rio_write_n(fd, headers, strlen(headers));
-	rio_write_n(fd, body, strlen(body));
+	write(fd, headers, strlen(headers));
+	write(fd, body, strlen(body));
 }
 
 #include <sys/select.h>
@@ -422,23 +298,10 @@ void tunnel_transfer(int fromfd, int tofd, int enable_print)
 {
 	char buffer[BUFFER_SIZE];
 
-	// fd_set rset, eset;
 	struct timeval TV;
 	TV.tv_sec = 10;
-	setsockopt(fromfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
-	setsockopt(tofd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
-
-	// FD_ZERO(&rset);
-	// // FD_ZERO(&wset);
-	// FD_ZERO(&eset);
-
-	// FD_SET(fromfd, &rset);
-	// FD_SET(fromfd, &eset);
-
-	// FD_SET(tofd, &rset);
-	// FD_SET(tofd, &eset);
-
-	// int readyfd;
+	// setsockopt(fromfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
+	// setsockopt(tofd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
 
 	puts("进入隧道模式");
 	pthread_t rw[2];
@@ -453,23 +316,6 @@ void tunnel_transfer(int fromfd, int tofd, int enable_print)
 	pthread_join(rw[0], NULL);
 	pthread_join(rw[1], NULL);
 
-	// while ((readyfd = select(2 + 1, &rset, NULL, &eset, &TV)) != 0)
-	// {
-	// 	if (readyfd < 0)
-	// 	{
-	// 		perror("\033[31mCONNECT隧道模块：select等待错误\033[0m");
-	// 		break;
-	// 	}
-	// 	else
-	// 	{
-	// 		int otherfd = (readyfd == fromfd ? tofd : fromfd);
-	// 		rio_read_n(readyfd, buffer, BUFFER_SIZE - 1);
-	// 		printf("\033[35m%d => %d\n", readyfd, otherfd);
-	// 		puts(buffer);
-	// 		printf("\033[0m\n");
-	// 		rio_write_n(otherfd, buffer, BUFFER_SIZE - 1);
-	// 	}
-	// }
 	perror("\033[31mCONNECT隧道模块：超时关闭\033[0m");
 }
 
@@ -484,7 +330,7 @@ int SetNonBlock(int iSock)
 	return ret;
 }
 
-int construct_package(vector_t *V, rio *R)
+int construct_package(vector_t *V, int fd)
 {
 	char buf[BUFFER_SIZE];
 	int reuse = 0;
@@ -492,9 +338,10 @@ int construct_package(vector_t *V, rio *R)
 
 	while (1)
 	{
-		int rctr = rio_buffered_readline(R, buf, BUFFER_SIZE);
-		printf("读入%d个字节:\n%s", rctr, buf);
-		if (strcmp(buf, "\r\n") == 0)
+		// int rctr = rio_buffered_readline(R, buf, BUFFER_SIZE);
+		int rctr = readline(fd, buf);
+		// printf("读入%d个字节:\n%s", rctr, buf);
+		if (strcmp(buf, "\r\n") == 0 || rctr == 0)
 			break;
 		// puts(buf);
 		char key[BUFFER_SIZE], value[BUFFER_SIZE];
@@ -544,7 +391,13 @@ int construct_package(vector_t *V, rio *R)
 	while (content_length > 0)
 	{
 		printf("Content-Length ===> %lld\n", content_length);
-		rp = rio_buffered_readline(R, buf, min(BUFFER_SIZE - 1, content_length));
+		// rp = rio_buffered_readline(R, buf, min(BUFFER_SIZE - 1, content_length));
+		rp = read(fd, buf, min(BUFFER_SIZE - 1, content_length));
+		if (rp == 0)
+		{
+			perror("\033[031m读错误：过早的EOF\033[0m");
+			break;
+		}
 		content_length -= rp;
 		printf("I read %d \n", rp);
 		vector_concat_n(V, buf, rp);
@@ -556,7 +409,7 @@ int construct_package(vector_t *V, rio *R)
 	// 	rp = rio_read(R, buf, R->cnt);
 	// 	vector_concat_n(V, buf, rp);
 	// }
-	printf("剩余计数：%d\n", R->cnt);
+	// printf("剩余计数：%d\n", R->cnt);
 	return reuse;
 }
 
@@ -567,12 +420,13 @@ void handle_inbound(int client_fd, int *serverfd)
 	char uri[BUFFER_SIZE];
 	char version[BUFFER_SIZE];
 
-	rio R;
+	// rio R;
 	ssize_t len = 0;
 	int resplen = 0;
 
-	rio_init(&R, client_fd);
-	rio_buffered_readline(&R, buf, BUFFER_SIZE);
+	// rio_init(&R, client_fd);
+	// rio_buffered_readline(&R, buf, BUFFER_SIZE);
+	readline(client_fd, buf);
 
 	puts(buf);
 
@@ -595,10 +449,17 @@ void handle_inbound(int client_fd, int *serverfd)
 
 	*serverfd = open_proxyfd(host, port);
 	printf("serverfd:%d\n", *serverfd);
+	if (*serverfd < 0)
+		return;
+		
 	if (strcasecmp(method, "CONNECT") == 0)
 	{
 		// read(client_fd, buf, BUFFER_SIZE);
 		// puts(buf);
+		do
+		{
+			readline(client_fd, buf);
+		} while (strcmp(buf, "\r\n"));
 		sprintf(buf, "%s 200 OK\r\n\r\n", version);
 		puts(buf);
 
@@ -611,13 +472,9 @@ void handle_inbound(int client_fd, int *serverfd)
 		vector_init(&VECTOR, BUFFER_SIZE);
 		struct timeval TV;
 		TV.tv_sec = 4;
-		setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
+		// setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
 
 		printf("\033[036m发现%s请求\n", method);
-
-		rio SVR;
-
-		rio_init(&SVR, *serverfd);
 
 		sprintf(buf, "%s %s %s\r\n", method, path, version);
 
@@ -626,10 +483,12 @@ void handle_inbound(int client_fd, int *serverfd)
 		int keep_alive = 1;
 		while (keep_alive)
 		{
+			// rio SVR;
+			// rio_init(&SVR, *serverfd);
 			// keep_alive = 0;
 			// puts("BP1");
 
-			keep_alive = construct_package(&VECTOR, &R);
+			keep_alive = construct_package(&VECTOR, client_fd);
 
 			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
 			write(*serverfd, VECTOR.begin, vector_size(&VECTOR));
@@ -639,7 +498,7 @@ void handle_inbound(int client_fd, int *serverfd)
 			vector_clear(&VECTOR);
 			// rio_init(&R, client_fd);
 
-			construct_package(&VECTOR, &SVR);
+			construct_package(&VECTOR, *serverfd);
 
 			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
 			write(client_fd, VECTOR.begin, vector_size(&VECTOR));
@@ -647,7 +506,6 @@ void handle_inbound(int client_fd, int *serverfd)
 			puts(VECTOR.begin);
 
 			vector_clear(&VECTOR);
-			// rio_init(&SVR, *serverfd);
 		}
 		puts("\033[0m");
 
@@ -667,7 +525,7 @@ int main(int argc, char *argv[])
 		bind_port = atoi(argv[1]);
 	}
 	// printf("参数:%d\n", argc);
-	printf("\033[32m垃圾代理：版本0.1.0\033[0m\n\n");
+	printf("\033[32m垃圾代理：版本1.0.0.20210603\033[0m\n\n");
 	int sockfd, newfd;
 	struct sockaddr_in from, to;
 	int sin_size;
@@ -706,9 +564,9 @@ int main(int argc, char *argv[])
 	printf("监听%d中\n", bind_port);
 	// puts("P7");
 
-	int T = 1919810;
+	// int T = 1919810;
 
-	while (T--)
+	while (1)
 	{
 		// int pp;
 		// {
