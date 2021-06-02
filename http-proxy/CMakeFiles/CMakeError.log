@@ -84,3 +84,47 @@ int main(void)
   return 0;
 }
 
+Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_9e65c/fast && gmake: Warning: File 'Makefile' has modification time 0.12 s in the future
+/usr/bin/gmake  -f CMakeFiles/cmTC_9e65c.dir/build.make CMakeFiles/cmTC_9e65c.dir/build
+gmake[1]: Entering directory '/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles/CMakeTmp'
+gmake[1]: Warning: File 'CMakeFiles/cmTC_9e65c.dir/flags.make' has modification time 0.1 s in the future
+Building C object CMakeFiles/cmTC_9e65c.dir/src.c.o
+/usr/bin/cc   -DCMAKE_HAVE_LIBC_PTHREAD -o CMakeFiles/cmTC_9e65c.dir/src.c.o -c /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_9e65c
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9e65c.dir/link.txt --verbose=1
+/usr/bin/cc  -DCMAKE_HAVE_LIBC_PTHREAD -rdynamic CMakeFiles/cmTC_9e65c.dir/src.c.o -o cmTC_9e65c 
+/usr/bin/ld: CMakeFiles/cmTC_9e65c.dir/src.c.o: in function `main':
+src.c:(.text+0x2f): undefined reference to `pthread_create'
+/usr/bin/ld: src.c:(.text+0x3b): undefined reference to `pthread_detach'
+/usr/bin/ld: src.c:(.text+0x47): undefined reference to `pthread_cancel'
+/usr/bin/ld: src.c:(.text+0x58): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_9e65c.dir/build.make:106: cmTC_9e65c] Error 1
+gmake[1]: Leaving directory '/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_9e65c/fast] Error 2
+
+
+Source file was:
+#include <pthread.h>
+
+void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
