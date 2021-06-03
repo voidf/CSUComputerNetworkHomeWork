@@ -199,7 +199,7 @@ int open_proxyfd(char *hostname, int port)
 		return fd;
 }
 
-void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
+int parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
 {
 	char ato[BUFFER_SIZE];
 	// puts("A1");
@@ -212,7 +212,6 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 
 	int match_cnt = sscanf(raw_uri, "%[^:/]://%s", protocol, ato);
 	// puts("A3");
-	// printf("matchcnt:%d\n", match_cnt);
 
 	// 没有http(s)前缀
 	// int match_cnt = 1;
@@ -237,10 +236,17 @@ void parse_uri(const char raw_uri[], char protocol[], char host[], char path[], 
 	match_cnt = sscanf(ato, "%[^/:?]:%d%s", host, port, path);
 	// fprintf(stderr, "\033[035m域名是%s\n\033[0m", host);
 	// 没有端口号
+	printf("matchcnt:%d\n", match_cnt);
 	if (match_cnt == 1)
 	{
 		sscanf(ato, "%*[^/:?]%s", path);
 	}
+	else if (match_cnt == 0)
+	{
+		host[0] = '\0';
+		return -1;
+	}
+	return 0;
 	// puts("A4");
 }
 
@@ -445,6 +451,59 @@ int construct_package(vector_t *V, int fd)
 	return reuse;
 }
 
+const char *mount_point = "/mnt/f/Users/Subaru/Documents/PYSPIDER/build";
+
+#include <sys/stat.h>
+int file_size(char *filename)
+{
+	struct stat statbuf;
+	stat(filename, &statbuf);
+	int size = statbuf.st_size;
+	return size;
+}
+
+void filesystem_proxy(int fd, char uri[])
+{
+	if (strstr(uri, "..") != NULL)
+	{
+		wrap_error(fd, 403, "FORBIDDEN:老师傅别打了求求");
+		return;
+	}
+	if (strcmp(uri, "/") == 0)
+		sprintf(uri, "/index.html");
+
+	char file_path[BUFFER_SIZE];
+	char tmp[BUFFER_SIZE];
+
+	sprintf(file_path, "%s%s", mount_point, uri);
+	int siz = file_size(file_path);
+	int file = open(file_path, O_RDONLY);
+	if (file < 0)
+	{
+		wrap_error(fd, 500, strerror(errno));
+		perror("\033[031m打开文件错误：\033[0m");
+		puts(file_path);
+		return;
+	}
+	vector_t V;
+	vector_init(&V, siz + BUFFER_SIZE);
+	vector_concat(&V,
+				  "HTTP/1.0 200 OK\r\n"
+				  "server: GOMIWEBSERVER\r\n"
+				  "content-type: text/html; charset=utf-8\r\n");
+	sprintf(tmp, "content-length: %d\r\n\r\n", siz);
+	vector_concat(&V, tmp);
+	read(file, V.begin + vector_size(&V), siz);
+	V.end += siz;
+	write(fd, V.begin, vector_size(&V));
+
+	printf("vectorsize:%d, realsize:%d\n", vector_size(&V), V.real_size);
+	V.end = '\0';
+	puts(V.begin);
+
+	vector_destroy(&V);
+}
+
 void handle_inbound(int client_fd, int *serverfd)
 {
 	char buf[BUFFER_SIZE];
@@ -472,12 +531,16 @@ void handle_inbound(int client_fd, int *serverfd)
 	char protocol[BUFFER_SIZE];
 	char path[BUFFER_SIZE];
 	int port;
-	parse_uri(uri, protocol, host, path, &port);
+	if (parse_uri(uri, protocol, host, path, &port) == -1)
+	{
+		filesystem_proxy(client_fd, uri);
+		return;
+	}
 
-	// printf("HOST:%s\n", host);
-	// printf("PATH:%s\n", path);
-	// printf("PROTOCOL:%s\n", protocol);
-	// printf("PORT:%d\n", port);
+	printf("\033[034mHOST:%s\n", host);
+	printf("PATH:%s\n", path);
+	printf("PROTOCOL:%s\n", protocol);
+	printf("PORT:%d\n\033[0m", port);
 
 	*serverfd = open_proxyfd(host, port);
 	printf("serverfd:%d\n", *serverfd);
