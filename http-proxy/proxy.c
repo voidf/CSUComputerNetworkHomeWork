@@ -1,4 +1,4 @@
-// #include "proxy_parse.h"
+// 编译命令: gcc -pthread
 
 #include <asm-generic/socket.h>
 typedef long long LL;
@@ -480,6 +480,11 @@ void filesystem_proxy(int fd, char uri[])
 	int file = open(file_path, O_RDONLY);
 	if (file < 0)
 	{
+		if (errno == 2)
+		{
+			wrap_error(fd, 404, "Not Found");
+			return;
+		}
 		wrap_error(fd, 500, strerror(errno));
 		perror("\033[031m打开文件错误：\033[0m");
 		puts(file_path);
@@ -490,7 +495,7 @@ void filesystem_proxy(int fd, char uri[])
 	vector_concat(&V,
 				  "HTTP/1.0 200 OK\r\n"
 				  "server: GOMIWEBSERVER\r\n"
-				  "content-type: text/html; charset=utf-8\r\n");
+				  "content-type: charset=utf-8\r\n");
 	sprintf(tmp, "content-length: %d\r\n\r\n", siz);
 	vector_concat(&V, tmp);
 	read(file, V.begin + vector_size(&V), siz);
