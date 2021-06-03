@@ -62,10 +62,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /mnt/c/Users/Administrator/Documents/UDPHomeWork
+CMAKE_SOURCE_DIR = /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /mnt/c/Users/Administrator/Documents/UDPHomeWork
+CMAKE_BINARY_DIR = /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
 
 # Utility rule file for ExperimentalStart.
 
@@ -90,6 +90,6 @@ CMakeFiles/ExperimentalStart.dir/clean:
 .PHONY : CMakeFiles/ExperimentalStart.dir/clean
 
 CMakeFiles/ExperimentalStart.dir/depend:
-	cd /mnt/c/Users/Administrator/Documents/UDPHomeWork && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /mnt/c/Users/Administrator/Documents/UDPHomeWork /mnt/c/Users/Administrator/Documents/UDPHomeWork /mnt/c/Users/Administrator/Documents/UDPHomeWork /mnt/c/Users/Administrator/Documents/UDPHomeWork /mnt/c/Users/Administrator/Documents/UDPHomeWork/CMakeFiles/ExperimentalStart.dir/DependInfo.cmake --color=$(COLOR)
+	cd /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles/ExperimentalStart.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/ExperimentalStart.dir/depend
 

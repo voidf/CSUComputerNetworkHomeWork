@@ -67,10 +67,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /mnt/c/Users/Administrator/Documents/UDPHomeWork
+CMAKE_SOURCE_DIR = /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /mnt/c/Users/Administrator/Documents/UDPHomeWork
+CMAKE_BINARY_DIR = /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -100,7 +100,7 @@ test/fast: test
 # Special rule for the target package_source
 package_source:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool for source..."
-	/usr/bin/cpack --config ./CPackSourceConfig.cmake /mnt/c/Users/Administrator/Documents/UDPHomeWork/CPackSourceConfig.cmake
+	/usr/bin/cpack --config ./CPackSourceConfig.cmake /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CPackSourceConfig.cmake
 .PHONY : package_source
 
 # Special rule for the target package_source
@@ -132,9 +132,9 @@ package/fast: package
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/Administrator/Documents/UDPHomeWork/CMakeFiles /mnt/c/Users/Administrator/Documents/UDPHomeWork//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/Administrator/Documents/UDPHomeWork/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -475,6 +475,19 @@ ExperimentalUpdate/fast:
 .PHONY : ExperimentalUpdate/fast
 
 #=============================================================================
+# Target rules for targets named GOMIPROXY
+
+# Build rule for target.
+GOMIPROXY: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 GOMIPROXY
+.PHONY : GOMIPROXY
+
+# fast build rule for target.
+GOMIPROXY/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/GOMIPROXY.dir/build.make CMakeFiles/GOMIPROXY.dir/build
+.PHONY : GOMIPROXY/fast
+
+#=============================================================================
 # Target rules for targets named ContinuousStart
 
 # Build rule for target.
@@ -526,45 +539,32 @@ ContinuousSubmit/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ContinuousSubmit.dir/build.make CMakeFiles/ContinuousSubmit.dir/build
 .PHONY : ContinuousSubmit/fast
 
-#=============================================================================
-# Target rules for targets named UDPHomeWork
+proxy.o: proxy.c.o
 
-# Build rule for target.
-UDPHomeWork: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 UDPHomeWork
-.PHONY : UDPHomeWork
-
-# fast build rule for target.
-UDPHomeWork/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/UDPHomeWork.dir/build.make CMakeFiles/UDPHomeWork.dir/build
-.PHONY : UDPHomeWork/fast
-
-soc.o: soc.c.o
-
-.PHONY : soc.o
+.PHONY : proxy.o
 
 # target to build an object file
-soc.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/UDPHomeWork.dir/build.make CMakeFiles/UDPHomeWork.dir/soc.c.o
-.PHONY : soc.c.o
+proxy.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/GOMIPROXY.dir/build.make CMakeFiles/GOMIPROXY.dir/proxy.c.o
+.PHONY : proxy.c.o
 
-soc.i: soc.c.i
+proxy.i: proxy.c.i
 
-.PHONY : soc.i
+.PHONY : proxy.i
 
 # target to preprocess a source file
-soc.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/UDPHomeWork.dir/build.make CMakeFiles/UDPHomeWork.dir/soc.c.i
-.PHONY : soc.c.i
+proxy.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/GOMIPROXY.dir/build.make CMakeFiles/GOMIPROXY.dir/proxy.c.i
+.PHONY : proxy.c.i
 
-soc.s: soc.c.s
+proxy.s: proxy.c.s
 
-.PHONY : soc.s
+.PHONY : proxy.s
 
 # target to generate assembly for a file
-soc.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/UDPHomeWork.dir/build.make CMakeFiles/UDPHomeWork.dir/soc.c.s
-.PHONY : soc.c.s
+proxy.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/GOMIPROXY.dir/build.make CMakeFiles/GOMIPROXY.dir/proxy.c.s
+.PHONY : proxy.c.s
 
 # Help Target
 help:
@@ -605,10 +605,10 @@ help:
 	@echo "... NightlySubmit"
 	@echo "... NightlyTest"
 	@echo "... NightlyUpdate"
-	@echo "... UDPHomeWork"
-	@echo "... soc.o"
-	@echo "... soc.i"
-	@echo "... soc.s"
+	@echo "... GOMIPROXY"
+	@echo "... proxy.o"
+	@echo "... proxy.i"
+	@echo "... proxy.s"
 .PHONY : help
 
 

@@ -4,14 +4,14 @@
 
 
 # Configuration directories and files
-SourceDirectory: /mnt/c/Users/Administrator/Documents/UDPHomeWork
-BuildDirectory: /mnt/c/Users/Administrator/Documents/UDPHomeWork
+SourceDirectory: /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
+BuildDirectory: /mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy
 
 # Where to place the cost data store
 CostDataFile: 
 
 # Site is something like machine.domain, i.e. pragmatic.crd
-Site: Kaguya
+Site: Subaru
 
 # Build name is osname-revision-compiler, i.e. Linux-2.4.2-2smp-c++
 BuildName: Linux-c++
@@ -26,7 +26,7 @@ SubmitURL: http://
 NightlyStartTime: 00:00:00 EDT
 
 # Commands for the build/test/submit cycle
-ConfigureCommand: "/usr/bin/cmake" "/mnt/c/Users/Administrator/Documents/UDPHomeWork"
+ConfigureCommand: "/usr/bin/cmake" "/mnt/f/Users/Subaru/Documents/UDPHomeWork/http-proxy"
 MakeCommand: /usr/bin/cmake --build . --config "${CTEST_CONFIGURATION_TYPE}" -- -i
 DefaultCTestConfigurationType: Release
 
@@ -44,7 +44,7 @@ SVNOptions:
 SVNUpdateOptions: 
 
 # Git options
-GITCommand: /usr/bin/git
+GITCommand: GITCOMMAND-NOTFOUND
 GITInitSubmodules: 
 GITUpdateOptions: 
 GITUpdateCustom: 
@@ -57,9 +57,9 @@ P4UpdateOptions:
 P4UpdateCustom: 
 
 # Generic update command
-UpdateCommand: /usr/bin/git
+UpdateCommand: 
 UpdateOptions: 
-UpdateType: git
+UpdateType: 
 
 # Compiler info
 Compiler: /usr/bin/c++
