@@ -440,18 +440,23 @@ int construct_package(vector_t *V, int fd)
 				len -= rdc;
 				vector_concat_n(V, buf, rdc);
 			}
-			rdc = read(fd, buf, len);
-			// printf("\t<<RDC>>:%d\n", rdc);
-			len -= rdc;
-			vector_concat_n(V, buf, rdc);
-			rdc = read(fd, buf, 2);
+			while(len)
+			{
+				rdc = read(fd, buf, len);
+				// printf("\t<<RDC>>:%d\n", rdc);
+				len -= rdc;
+				vector_concat_n(V, buf, rdc);
+
+			}
+			// printf("\t<<ato_len>>:%lld\n", len);
+			rdc = readline(fd, buf);
 			vector_concat_n(V, buf, rdc);
 		}
 	}
 	return reuse;
 }
 
-const char *mount_point = "/mnt/f/Users/Subaru/Documents/PYSPIDER/build";
+const char *mount_point = "/mnt/c/Users/ATRI/Desktop/PYSPIDER/build";
 
 #include <sys/stat.h>
 int file_size(char *filename)
