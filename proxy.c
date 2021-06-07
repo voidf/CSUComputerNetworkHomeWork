@@ -1,8 +1,9 @@
 // 编译命令: gcc -pthread
 
+const char *mount_point = "/mnt/c/Users/ATRI/Desktop/voidf.github.io-master/voidf.github.io-master";
+
 #include <asm-generic/socket.h>
 typedef long long LL;
-
 #define sign(_x) (_x < 0)
 #define range_4(__iter__, __from__, __to__, __step__) for (LL __iter__ = __from__; __iter__ != __to__ && sign(__to__ - __from__) == sign(__step__); __iter__ += __step__)
 #define range_3(__iter__, __from__, __to__) range_4(__iter__, __from__, __to__, 1)
@@ -325,17 +326,6 @@ void tunnel_transfer(int fromfd, int tofd, int enable_print)
 	perror("\033[31mCONNECT隧道模块：超时关闭\033[0m");
 }
 
-int SetNonBlock(int iSock)
-{
-	int iFlags;
-
-	iFlags = fcntl(iSock, F_GETFL, 0);
-	iFlags |= O_NONBLOCK;
-	iFlags |= O_NDELAY;
-	int ret = fcntl(iSock, F_SETFL, iFlags);
-	return ret;
-}
-
 int construct_package(vector_t *V, int fd)
 {
 	char buf[BUFFER_SIZE];
@@ -440,13 +430,12 @@ int construct_package(vector_t *V, int fd)
 				len -= rdc;
 				vector_concat_n(V, buf, rdc);
 			}
-			while(len)
+			while (len)
 			{
 				rdc = read(fd, buf, len);
 				// printf("\t<<RDC>>:%d\n", rdc);
 				len -= rdc;
 				vector_concat_n(V, buf, rdc);
-
 			}
 			// printf("\t<<ato_len>>:%lld\n", len);
 			rdc = readline(fd, buf);
@@ -456,8 +445,6 @@ int construct_package(vector_t *V, int fd)
 	return reuse;
 }
 
-const char *mount_point = "/mnt/c/Users/ATRI/Desktop/PYSPIDER/build";
-
 #include <sys/stat.h>
 int file_size(char *filename)
 {
@@ -465,6 +452,68 @@ int file_size(char *filename)
 	stat(filename, &statbuf);
 	int size = statbuf.st_size;
 	return size;
+}
+
+int hex2dec(char c)
+{
+	if ('0' <= c && c <= '9')
+	{
+		return c - '0';
+	}
+	else if ('a' <= c && c <= 'f')
+	{
+		return c - 'a' + 10;
+	}
+	else if ('A' <= c && c <= 'F')
+	{
+		return c - 'A' + 10;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+char dec2hex(short int c)
+{
+	if (0 <= c && c <= 9)
+	{
+		return c + '0';
+	}
+	else if (10 <= c && c <= 15)
+	{
+		return c + 'A' - 10;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+void urldecode(char url[])
+{
+	int i = 0;
+	int len = strlen(url);
+	int res_len = 0;
+	char res[BUFFER_SIZE];
+	for (i = 0; i < len; ++i)
+	{
+		char c = url[i];
+		if (c != '%')
+		{
+			res[res_len++] = c;
+		}
+		else
+		{
+			char c1 = url[++i];
+			char c0 = url[++i];
+			int num = 0;
+			num = hex2dec(c1) * 16 + hex2dec(c0);
+			res[res_len++] = num;
+		}
+	}
+	res[res_len] = '\0';
+	strcpy(url, res);
 }
 
 void filesystem_proxy(int fd, char uri[])
@@ -481,6 +530,7 @@ void filesystem_proxy(int fd, char uri[])
 	char tmp[BUFFER_SIZE];
 
 	sprintf(file_path, "%s%s", mount_point, uri);
+	urldecode(file_path);
 	int siz = file_size(file_path);
 	int file = open(file_path, O_RDONLY);
 	if (file < 0)
@@ -499,8 +549,29 @@ void filesystem_proxy(int fd, char uri[])
 	vector_init(&V, siz + BUFFER_SIZE);
 	vector_concat(&V,
 				  "HTTP/1.0 200 OK\r\n"
-				  "server: GOMIWEBSERVER\r\n"
-				  "content-type: charset=utf-8\r\n");
+				  "server: GOMIWEBSERVER\r\n");
+
+	char extension[BUFFER_SIZE];
+	char content_type[BUFFER_SIZE];
+	strcpy(extension, strrchr(file_path, '.'));
+	if (strcasecmp(extension, "css") == 0)
+		sprintf(content_type, "text/css; charset=utf-8");
+	else if (strcasecmp(extension, "mp3") == 0)
+		sprintf(content_type, "audio/mpeg");
+	else if (strcasecmp(extension, "html") == 0)
+		sprintf(content_type, "text/html; charset=utf-8");
+	else if (strcasecmp(extension, "js") == 0)
+		sprintf(content_type, "application/javascript");
+	else if (strcasecmp(extension, "ico") == 0)
+		sprintf(content_type, "image/x-icon");
+	else if (strcasecmp(extension, "png") == 0)
+		sprintf(content_type, "image/png");
+	else if (strcasecmp(extension, "json") == 0)
+		sprintf(content_type, "application/json");
+	else 
+		sprintf(content_type, "text/plain; charset=utf-8");
+
+	sprintf(tmp, "content-type: %s\r\n", content_type);
 	sprintf(tmp, "content-length: %d\r\n\r\n", siz);
 	vector_concat(&V, tmp);
 	read(file, V.begin + vector_size(&V), siz);
