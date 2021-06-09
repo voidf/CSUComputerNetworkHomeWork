@@ -1,19 +1,10 @@
 // 编译命令: gcc -pthread
 
-const char *mount_point = "/mnt/c/Users/ATRI/Desktop/voidf.github.io-master/voidf.github.io-master";
+const char *mount_point = "/mnt/c/Users/ATRI/Desktop/voidf.github.io-master/voidf.github.io-master"; // 需要挂载的网页目录
 
 #include <asm-generic/socket.h>
-typedef long long LL;
-#define sign(_x) (_x < 0)
-#define range_4(__iter__, __from__, __to__, __step__) for (LL __iter__ = __from__; __iter__ != __to__ && sign(__to__ - __from__) == sign(__step__); __iter__ += __step__)
-#define range_3(__iter__, __from__, __to__) range_4(__iter__, __from__, __to__, 1)
-#define range_2(__iter__, __to__) range_4(__iter__, 0, __to__, 1)
-#define range_1(__iter__, __to__) range_4(__iter__, 0, 1, 1)
-#define get_range(_1, _2, _3, _4, _Func, ...) _Func
-#define range(...) get_range(__VA_ARGS__, range_4, range_3, range_2, range_1, ...)(__VA_ARGS__)
 
 #define min(_lhs, _rhs) (_lhs < _rhs ? _lhs : _rhs)
-#define endl '\n'
 
 #include <asm-generic/errno-base.h>
 #include <pthread.h>
@@ -39,13 +30,11 @@ typedef long long LL;
 
 #define BUFFER_SIZE (1 << 14)
 
-// const int BUFFER_SIZE = 1 << 14;
-
 const int maximum_process_count = 1 << 7;
 
 u_short bind_port = 11452;
 
-//package vector begin　给用C++就没这些破事了害
+//以下是vector包的C语言实现
 
 typedef char vector_element;
 typedef struct
@@ -132,9 +121,9 @@ void vector_connect(vector_t *original, vector_t *another)
 	}
 }
 
-//package vector end
+//以上是vector包
 
-/* SB Rio，狗都不用 */
+/* 读入行 */
 ssize_t readline(int fd, char *buf)
 {
 	char *ptr = buf;
@@ -173,7 +162,6 @@ int open_proxyfd(char *hostname, int port)
 	if (getaddrinfo(hostname, port_str, NULL, &addrlist) != 0)
 	{
 		perror("\033[031m域名转换模块：获取域名信息失败\033[0m");
-		fprintf(stderr, "\033[031m其中域名是%s\n\033[0m", hostname);
 		return -1;
 	}
 
@@ -181,10 +169,6 @@ int open_proxyfd(char *hostname, int port)
 	{
 		if (p->ai_family == AF_INET)
 		{
-			// range(i, 14)
-			// {
-			// 	printf("尝试连接于%d\n", (p->ai_addr->sa_data[i]));
-			// }
 			if (connect(fd, p->ai_addr, p->ai_addrlen) == 0)
 				break;
 		}
@@ -200,27 +184,16 @@ int open_proxyfd(char *hostname, int port)
 		return fd;
 }
 
+/* 拆解uri */
 int parse_uri(const char raw_uri[], char protocol[], char host[], char path[], int *port)
 {
 	char ato[BUFFER_SIZE];
-	// puts("A1");
 	*path = '\0';
-
 	*protocol = '\0';
-
 	*port = 80; // 默认设80
-	// puts("A2");
-
 	int match_cnt = sscanf(raw_uri, "%[^:/]://%s", protocol, ato);
-	// puts("A3");
-
-	// 没有http(s)前缀
-	// int match_cnt = 1;
-	// fprintf(stderr, "\033[035mmatch_cnt是%d\n\033[0m", match_cnt);
 	if (match_cnt == 0)
-	{
 		sscanf(raw_uri, "%s", ato);
-	}
 	else
 	{
 		if (strcmp(protocol, "http") == 0)
@@ -233,27 +206,21 @@ int parse_uri(const char raw_uri[], char protocol[], char host[], char path[], i
 			sscanf(raw_uri, "%s", ato);
 		}
 	}
-	// fprintf(stderr, "\033[035mato是%s\n\033[0m", ato);
 	match_cnt = sscanf(ato, "%[^/:?]:%d%s", host, port, path);
-	// fprintf(stderr, "\033[035m域名是%s\n\033[0m", host);
 	// 没有端口号
 	printf("matchcnt:%d\n", match_cnt);
 	if (match_cnt == 1)
-	{
 		sscanf(ato, "%*[^/:?]%s", path);
-	}
 	else if (match_cnt == 0)
 	{
 		host[0] = '\0';
 		return -1;
 	}
 	return 0;
-	// puts("A4");
 }
 
 void wrap_error(int fd, int code, const char *msg)
 {
-	printf("包装error：%d %s\n", code, msg);
 	char headers[BUFFER_SIZE] = "\0";
 	char body[BUFFER_SIZE] = "\0";
 
@@ -271,8 +238,6 @@ void wrap_error(int fd, int code, const char *msg)
 	write(fd, body, strlen(body));
 }
 
-#include <sys/select.h>
-
 struct ft_t
 {
 	int fromfd, tofd, enable_print;
@@ -281,7 +246,6 @@ struct ft_t
 void *endless_piping(void *arg)
 {
 	struct ft_t *ARG = (struct ft_t *)arg;
-	// printf("进入线程: 入:%d 出:%d\n", ARG->fromfd, ARG->tofd);
 	char buffer[BUFFER_SIZE];
 	int readcnt;
 
@@ -292,15 +256,11 @@ void *endless_piping(void *arg)
 			printf("从%d处的读入数%d\n", ARG->fromfd, readcnt);
 			puts(buffer);
 		}
-		// range(i, readcnt)
-		// {
-		// 	printf("%X\t", buffer[i]);
-		// }
-		// puts("");
 		write(ARG->tofd, buffer, readcnt);
 	}
 }
 
+/* 开两个线程相互直接传送数据，实现双工管道功能 */
 void tunnel_transfer(int fromfd, int tofd, int enable_print)
 {
 	char buffer[BUFFER_SIZE];
@@ -310,7 +270,6 @@ void tunnel_transfer(int fromfd, int tofd, int enable_print)
 	// setsockopt(fromfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
 	// setsockopt(tofd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&TV, sizeof TV);
 
-	puts("进入隧道模式");
 	pthread_t rw[2];
 	struct ft_t f1, f2;
 	f2.tofd = f1.fromfd = fromfd;
@@ -326,6 +285,7 @@ void tunnel_transfer(int fromfd, int tofd, int enable_print)
 	perror("\033[31mCONNECT隧道模块：超时关闭\033[0m");
 }
 
+/* 从fd中一直尝试读取直到构造一个完整的HTTP包，返回包头是否允许keep-alive */
 int construct_package(vector_t *V, int fd)
 {
 	char buf[BUFFER_SIZE];
@@ -335,44 +295,29 @@ int construct_package(vector_t *V, int fd)
 
 	while (1)
 	{
-		// int rctr = rio_buffered_readline(R, buf, BUFFER_SIZE);
 		int rctr = readline(fd, buf);
-		// printf("读入%d个字节:\n%s", rctr, buf);
 		if (strcmp(buf, "\r\n") == 0 || rctr == 0)
 			break;
-		// puts(buf);
 		char key[BUFFER_SIZE], value[BUFFER_SIZE];
-
 		char *strstrres = strstr(buf, ": ");
-
 		if (strstrres == NULL)
 		{
 			vector_concat(V, buf);
 			continue;
 		}
-
 		int sep = strstrres - buf;
 		strncpy(key, buf, sep);
 		key[sep] = '\0';
 		strcpy(value, buf + sep + 2);
-
-		// printf("KEYLEN %d\n", strlen(key));
-		// printf("KEY:%s\n", key);
-
 		if (strcasecmp(key, "Proxy-Connection") == 0)
 		{
 			if (strcasecmp(value, "keep-alive\r\n") == 0)
 				reuse = 1;
-			// sprintf(buf, "Connection: close\r\n");
-			// vector_concat(&VECTOR, buf);
-			// wctr = write(*serverfd, buf, strlen(buf));
 		}
 		else if (strcasecmp(key, "Connection") == 0)
 		{
 			if (strcasecmp(value, "keep-alive\r\n") == 0)
 				reuse = 1;
-			// sprintf(buf, "Connection: close\r\n");
-			// wctr = write(*serverfd, buf, rctr);
 		}
 		else if (strcasecmp(key, "content-length") == 0)
 		{
@@ -385,15 +330,12 @@ int construct_package(vector_t *V, int fd)
 				chunked_flag = 1;
 		}
 		vector_concat(V, buf);
-		// printf("写入%d个字节:\n%s", wctr, buf);
 	}
 	vector_concat(V, "\r\n");
 	int rp;
-	// puts("BP2");
 	while (content_length > 0)
 	{
 		printf("Content-Length ===> %lld\n", content_length);
-		// rp = rio_buffered_readline(R, buf, min(BUFFER_SIZE - 1, content_length));
 		rp = read(fd, buf, min(BUFFER_SIZE - 1, content_length));
 		if (rp == 0)
 		{
@@ -401,7 +343,6 @@ int construct_package(vector_t *V, int fd)
 			break;
 		}
 		content_length -= rp;
-		printf("I read %d \n", rp);
 		vector_concat_n(V, buf, rp);
 	}
 
@@ -414,9 +355,6 @@ int construct_package(vector_t *V, int fd)
 			vector_concat_n(V, buf, rdc);
 			buf[rdc] = '\0';
 			sscanf(buf, "%llx", &len);
-			// len = atoll(buf);
-			printf("\t<<rdc>>:%d <<len>>:%lld\n", rdc, len);
-			puts(buf);
 
 			if (len == 0)
 			{
@@ -433,11 +371,9 @@ int construct_package(vector_t *V, int fd)
 			while (len)
 			{
 				rdc = read(fd, buf, len);
-				// printf("\t<<RDC>>:%d\n", rdc);
 				len -= rdc;
 				vector_concat_n(V, buf, rdc);
 			}
-			// printf("\t<<ato_len>>:%lld\n", len);
 			rdc = readline(fd, buf);
 			vector_concat_n(V, buf, rdc);
 		}
@@ -457,37 +393,23 @@ int file_size(char *filename)
 int hex2dec(char c)
 {
 	if ('0' <= c && c <= '9')
-	{
 		return c - '0';
-	}
 	else if ('a' <= c && c <= 'f')
-	{
 		return c - 'a' + 10;
-	}
 	else if ('A' <= c && c <= 'F')
-	{
 		return c - 'A' + 10;
-	}
 	else
-	{
 		return -1;
-	}
 }
 
 char dec2hex(short int c)
 {
 	if (0 <= c && c <= 9)
-	{
 		return c + '0';
-	}
 	else if (10 <= c && c <= 15)
-	{
 		return c + 'A' - 10;
-	}
 	else
-	{
 		return -1;
-	}
 }
 
 void urldecode(char url[])
@@ -500,9 +422,7 @@ void urldecode(char url[])
 	{
 		char c = url[i];
 		if (c != '%')
-		{
 			res[res_len++] = c;
-		}
 		else
 		{
 			char c1 = url[++i];
@@ -515,7 +435,7 @@ void urldecode(char url[])
 	res[res_len] = '\0';
 	strcpy(url, res);
 }
-
+/* A3的主逻辑 */
 void filesystem_proxy(int fd, char uri[])
 {
 	if (strstr(uri, "..") != NULL)
@@ -568,7 +488,7 @@ void filesystem_proxy(int fd, char uri[])
 		sprintf(content_type, "image/png");
 	else if (strcasecmp(extension, "json") == 0)
 		sprintf(content_type, "application/json");
-	else 
+	else
 		sprintf(content_type, "text/plain; charset=utf-8");
 
 	sprintf(tmp, "content-type: %s\r\n", content_type);
@@ -577,10 +497,6 @@ void filesystem_proxy(int fd, char uri[])
 	read(file, V.begin + vector_size(&V), siz);
 	V.end += siz;
 	write(fd, V.begin, vector_size(&V));
-
-	printf("vectorsize:%d, realsize:%d\n", vector_size(&V), V.real_size);
-	V.end = '\0';
-	puts(V.begin);
 
 	vector_destroy(&V);
 }
@@ -591,23 +507,11 @@ void handle_inbound(int client_fd, int *serverfd)
 	char method[BUFFER_SIZE];
 	char uri[BUFFER_SIZE];
 	char version[BUFFER_SIZE];
-
-	// rio R;
 	ssize_t len = 0;
 	int resplen = 0;
-
-	// rio_init(&R, client_fd);
-	// rio_buffered_readline(&R, buf, BUFFER_SIZE);
 	readline(client_fd, buf);
-
 	puts(buf);
-
 	sscanf(buf, "%s %s %s", method, uri, version);
-
-	// printf("method:%s\n", method);
-	// printf("uri:%s\n", uri);
-	// printf("version:%s\n", version);
-
 	char host[BUFFER_SIZE];
 	char protocol[BUFFER_SIZE];
 	char path[BUFFER_SIZE];
@@ -617,28 +521,21 @@ void handle_inbound(int client_fd, int *serverfd)
 		filesystem_proxy(client_fd, uri);
 		return;
 	}
-
 	printf("\033[034mHOST:%s\n", host);
 	printf("PATH:%s\n", path);
 	printf("PROTOCOL:%s\n", protocol);
 	printf("PORT:%d\n\033[0m", port);
 
 	*serverfd = open_proxyfd(host, port);
-	printf("serverfd:%d\n", *serverfd);
 	if (*serverfd < 0)
 		return;
 
 	if (strcasecmp(method, "CONNECT") == 0)
 	{
-		// read(client_fd, buf, BUFFER_SIZE);
-		// puts(buf);
 		do
-		{
 			readline(client_fd, buf);
-		} while (strcmp(buf, "\r\n"));
+		while (strcmp(buf, "\r\n"));
 		sprintf(buf, "%s 200 OK\r\n\r\n", version);
-		puts(buf);
-
 		send(client_fd, buf, strlen(buf), 0);
 		tunnel_transfer(client_fd, *serverfd, 0);
 	}
@@ -659,28 +556,11 @@ void handle_inbound(int client_fd, int *serverfd)
 		int keep_alive = 1;
 		while (keep_alive)
 		{
-			// rio SVR;
-			// rio_init(&SVR, *serverfd);
-			// keep_alive = 0;
-			// puts("BP1");
-
 			keep_alive = construct_package(&VECTOR, client_fd);
-
-			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
 			write(*serverfd, VECTOR.begin, vector_size(&VECTOR));
-			// *VECTOR.end = 0;
-			// puts(VECTOR.begin);
-
 			vector_clear(&VECTOR);
-			// rio_init(&R, client_fd);
-
 			construct_package(&VECTOR, *serverfd);
-
-			printf("vectorsize:%d, realsize:%d\n", vector_size(&VECTOR), VECTOR.real_size);
 			write(client_fd, VECTOR.begin, vector_size(&VECTOR));
-			// *VECTOR.end = 0;
-			// puts(VECTOR.begin);
-
 			vector_clear(&VECTOR);
 		}
 		puts("\033[0m");
@@ -697,57 +577,37 @@ void handle_inbound(int client_fd, int *serverfd)
 int main(int argc, char *argv[])
 {
 	if (argc > 1)
-	{
 		bind_port = atoi(argv[1]);
-	}
-	// printf("参数:%d\n", argc);
 	printf("\033[32m垃圾代理：版本1.0.0.20210603\033[0m\n\n");
 	int sockfd, newfd;
 	struct sockaddr_in from, to;
 	int sin_size;
-	// puts("P1");
 	sem_t *available_conn = sem_open("/available_semaphore", O_CREAT, 0666, maximum_process_count);
 	sem_init(available_conn, 1, maximum_process_count);
-
 	int tmp;
 	sem_getvalue(available_conn, &tmp);
-
 	printf("允许同时处理的进程数：%d\n", tmp);
 
-	// puts("P2");
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd == -1)
 	{
 		perror("\033[31m创建socket失败\033[0m");
 		exit(1);
 	}
-
-	// puts("P3");
 	from.sin_family = AF_INET;
 	from.sin_port = htons(bind_port);
 	from.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	bzero(&(from.sin_zero), 8);
-	// puts("P4");
 	if (bind(sockfd, (struct sockaddr *)&from, sizeof(struct sockaddr)) < 0)
 	{
 		perror("\033[31m端口绑定失败\033[0m");
 		exit(2);
 	}
-	// puts("P5");
 	listen(sockfd, 0);
-	// puts("P6");
 	printf("监听%d中\n", bind_port);
-	// puts("P7");
-
-	// int T = 1919810;
-
 	while (1)
 	{
-		// int pp;
-		// {
-		// 	printf("\033[34m已回收子进程%d\n\033[0m", pp);
-		// }
 		sin_size = sizeof(struct sockaddr_in);
 		socklen_t siz;
 		newfd = accept(sockfd, (struct sockaddr *)&to, &siz);
@@ -755,23 +615,17 @@ int main(int argc, char *argv[])
 		int serverfd;
 
 		while (waitpid(-1, 0, WNOHANG) > 0)
-		{
 			printf("\033[34m已回收子进程\n\033[0m");
-		}
 
 		if (newfd == -1)
-		{
 			perror("接收错误");
-		}
 		else
 		{
 			pid_t p = fork();
 			if (p == 0)
 			{
-				// printf("进程号：%d\n", p);
 				if (sem_trywait(available_conn) != 0)
 				{
-					// puts("A1");
 					perror("\033[31m并发数已达上限\033[0m");
 					printf("\033[31m并发数已达上限\033[0m\n");
 					wrap_error(newfd, 114514, "并发数已达上限");
@@ -779,10 +633,8 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					// puts("A2");
 					int pctr;
 					sem_getvalue(available_conn, &pctr);
-					// printf("\033[32m 已经使用%d个进程 \033[0m \n", maximum_process_count - pctr);
 					fprintf(stderr, "\033[32m已经使用%d个进程\033[0m \n", maximum_process_count - pctr);
 					handle_inbound(newfd, &serverfd);
 					sem_post(available_conn);
@@ -795,6 +647,5 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-
 	return 0;
 }
